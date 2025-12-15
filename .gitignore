@@ -1,0 +1,103 @@
+# ================================
+# Python bytecode / cache
+# ================================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ================================
+# Virtual environments
+# ================================
+.env
+.venv
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# ================================
+# Package / build artifacts
+# ================================
+build/
+dist/
+develop-eggs/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ================================
+# Installer logs
+# ================================
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ================================
+# Unit test / coverage reports
+# ================================
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# ================================
+# Jupyter Notebook
+# ================================
+.ipynb_checkpoints/
+
+# ================================
+# IDE / Editor files
+# ================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# ================================
+# OS files
+# ================================
+.DS_Store
+Thumbs.db
+
+# ================================
+# Logs & runtime files
+# ================================
+*.log
+
+# ================================
+# ML / data artifacts (adjust as needed)
+# ================================
+data/
+datasets/
+models/
+checkpoints/
+runs/
+outputs/
+
+# ================================
+# CSV / large generated files
+# ================================
+*.csv
+
+# ================================
+# Secrets (never commit)
+# ================================
+*.env
+*.key
+*.pem
+*.crt
