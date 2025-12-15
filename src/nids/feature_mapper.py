@@ -11,6 +11,7 @@ and the trained machine learning model's input format.
 
 from typing import Dict, Any, List, Optional, Callable
 import numpy as np
+import pandas as pd
 
 
 class FeatureMapper:
@@ -51,18 +52,11 @@ class FeatureMapper:
         "Fwd IAT Total"
     ]
     
-    # Feature name mapping (extracted name -> model name)
-    # Used when feature names differ between extraction and model
-    FEATURE_NAME_MAP: Dict[str, str] = {
-        # Add mappings here if feature names need translation
-        # Example: "src_ip": "Source IP"
-    }
-    
     def __init__(
         self,
         feature_callback: Callable[[Dict[str, Any], Any], None],
         scaler: Optional[Any] = None,
-        feature_order: Optional[List[str]] = None
+
     ):
         """
         Initialize the FeatureMapper.
@@ -75,7 +69,6 @@ class FeatureMapper:
         """
         self.feature_callback = feature_callback
         self.scaler = scaler
-        self.feature_order = feature_order or self.DEFAULT_FEATURE_ORDER
         
         # Statistics
         self._features_mapped = 0
@@ -83,7 +76,7 @@ class FeatureMapper:
     def map_features(
         self, 
         features: Dict[str, Any], 
-        flow_metadata: Any = None
+        flow: Any = None
     ) -> Dict[str, Any]:
         """
         Map extracted features to model input format.
@@ -102,65 +95,18 @@ class FeatureMapper:
             Dictionary of mapped features ready for the Anomaly Detector
         """
         self._features_mapped += 1
+        self.df = pd.DataFrame(features, index=[0])
+        self.flow = flow
         
-        # Step 1: Standardize feature names
-        standardized = self._standardize_names(features)
-        
-        # Step 2: Order features according to model requirements
-        ordered = self._order_features(standardized)
-        
-        # Step 3: Apply normalization if scaler is available
+        # Apply normalization if scaler is available
         if self.scaler is not None:
-            ordered = self._normalize_features(ordered)
-        
-        # Step 4: Validate data types
-        validated = self._validate_types(ordered)
-        
+            scaled = self._normalize_features(self.df)
+
         # Forward to Anomaly Detector
         if self.feature_callback:
-            self.feature_callback(validated, flow_metadata)
+            self.feature_callback(scaled, flow)
         
-        return validated
-    
-    def _standardize_names(self, features: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Standardize feature names using the mapping dictionary.
-        
-        Args:
-            features: Features with original names
-            
-        Returns:
-            Features with standardized names
-        """
-        standardized = {}
-        
-        for key, value in features.items():
-            # Use mapped name if available, otherwise keep original
-            new_key = self.FEATURE_NAME_MAP.get(key, key)
-            standardized[new_key] = value
-        
-        return standardized
-    
-    def _order_features(self, features: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Order features according to the model's expected input order.
-        
-        Args:
-            features: Unordered features
-            
-        Returns:
-            Ordered features dictionary
-        """
-        ordered = {}
-        
-        for feature_name in self.feature_order:
-            if feature_name in features:
-                ordered[feature_name] = features[feature_name]
-            else:
-                # Use default value (0) for missing features
-                ordered[feature_name] = 0.0
-        
-        return ordered
+        return scaled
     
     def _normalize_features(self, features: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -192,34 +138,7 @@ class FeatureMapper:
             
         except Exception:
             # If scaling fails, return original features
-            return features
-    
-    def _validate_types(self, features: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Validate and convert feature data types.
-        
-        Ensures all numeric features are proper floats.
-        
-        Args:
-            features: Features to validate
-            
-        Returns:
-            Features with validated types
-        """
-        validated = {}
-        
-        for key, value in features.items():
-            if key in self.feature_order:
-                # Ensure numeric features are floats
-                try:
-                    validated[key] = float(value) if value is not None else 0.0
-                except (ValueError, TypeError):
-                    validated[key] = 0.0
-            else:
-                # Keep non-model features as-is (metadata)
-                validated[key] = value
-        
-        return validated
+            return features  
     
     def get_feature_array(self, features: Dict[str, Any]) -> np.ndarray:
         """
