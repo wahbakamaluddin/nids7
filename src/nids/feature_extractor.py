@@ -37,31 +37,11 @@ class FeatureExtractor:
     
     Attributes:
         feature_callback: Callback function when features are extracted
-        include_fields: Optional list of specific fields to extract
     """
-    
-    # Default set of features extracted (matching ML model requirements)
-    DEFAULT_FEATURES = [
-        "Bwd Packet Length Std",
-        "Bwd Packet Length Mean", 
-        "Bwd Packet Length Max",
-        "Total Length of Fwd Packets",
-        "Fwd Packet Length Max",
-        "Fwd Packet Length Mean",
-        "Fwd IAT Std",
-        "Total Fwd Packets",
-        "Fwd Packet Length Std",
-        "Flow IAT Max",
-        "Flow Bytes/s",
-        "Flow IAT Std",
-        "Bwd Packet Length Min",
-        "Fwd IAT Total"
-    ]
     
     def __init__(
         self,
         feature_callback: Callable[[Dict[str, Any], Flow], None],
-        include_fields: Optional[List[str]] = None
     ):
         """
         Initialize the FeatureExtractor.
@@ -72,8 +52,7 @@ class FeatureExtractor:
                            If None, extracts the default feature set.
         """
         self.feature_callback = feature_callback
-        self.include_fields = include_fields or self.DEFAULT_FEATURES
-        
+
         # Statistics
         self._flows_processed = 0
         self._features_extracted = 0
@@ -162,14 +141,7 @@ class FeatureExtractor:
             "Flow Duration": flow.duration * 1_000_000,  # microseconds
         }
         
-        # Filter to only include requested fields
-        if self.include_fields:
-            features = {
-                k: v for k, v in all_features.items() 
-                if k in self.include_fields
-            }
-        else:
-            features = all_features
+        features = all_features
         
         self._features_extracted += len(features)
         

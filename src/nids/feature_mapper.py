@@ -12,6 +12,7 @@ and the trained machine learning model's input format.
 from typing import Dict, Any, List, Optional, Callable
 import numpy as np
 import pandas as pd
+import joblib
 
 
 class FeatureMapper:
@@ -35,7 +36,7 @@ class FeatureMapper:
     """
     
     # Default feature order matching the trained model
-    DEFAULT_FEATURE_ORDER = [
+    REQUIRED_FEATURES = [
         "Bwd Packet Length Std",
         "Bwd Packet Length Mean",
         "Bwd Packet Length Max",
@@ -56,8 +57,7 @@ class FeatureMapper:
         self,
         feature_callback: Callable[[Dict[str, Any], Any], None],
         scaler: Optional[Any] = None,
-
-    ):
+        ):
         """
         Initialize the FeatureMapper.
         
@@ -65,7 +65,7 @@ class FeatureMapper:
             feature_callback: Function called with mapped features
             scaler: Optional sklearn scaler object for feature normalization
             feature_order: List defining the order of features for ML input.
-                          If None, uses DEFAULT_FEATURE_ORDER.
+                          If None, uses REQUIRED_FEATURES.
         """
         self.feature_callback = feature_callback
         self.scaler = scaler
@@ -77,7 +77,7 @@ class FeatureMapper:
         self, 
         features: Dict[str, Any], 
         flow: Any = None
-    ) -> Dict[str, Any]:
+    ):
         """
         Map extracted features to model input format.
         
@@ -95,63 +95,48 @@ class FeatureMapper:
             Dictionary of mapped features ready for the Anomaly Detector
         """
         self._features_mapped += 1
-        self.df = pd.DataFrame(features, index=[0])
-        self.flow = flow
-        
-        # Apply normalization if scaler is available
-        if self.scaler is not None:
-            scaled = self._normalize_features(self.df)
+        feature_array = self._to_array(features)
 
+        scaled_array = self.scale(feature_array)
+    
         # Forward to Anomaly Detector
         if self.feature_callback:
-            self.feature_callback(scaled, flow)
-        
-        return scaled
+            self.feature_callback(scaled_array, flow)
+
     
-    def _normalize_features(self, features: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_array(self, features: Dict[str, Any]) -> np.ndarray:
         """
-        Normalize feature values using the provided scaler.
+        Convert features dictionary to ordered numpy array.
         
         Args:
-            features: Features with raw values
+            features: Features dictionary from Feature Extractor
             
         Returns:
-            Features with normalized values
+            2D numpy array shaped (1, n_features)
+            
+        Raises:
+            KeyError: If a required feature is missing
+        """
+        values = [features[k] for k in self.REQUIRED_FEATURES]
+        return np.array([values], dtype=np.float64)
+    
+    def scale(self, features: np.ndarray) -> np.ndarray:
+        """
+        Scale feature values using the configured scaler.
+        
+        This is the dedicated scaling function that applies normalization
+        to the feature array before it's sent to the Anomaly Detector.
+        
+        Args:
+            features: 2D numpy array shaped (1, n_features)
+            
+        Returns:
+            Scaled 2D numpy array with same shape
         """
         if self.scaler is None:
             return features
         
-        try:
-            # Convert to array in the correct order
-            values = np.array([[features[k] for k in self.feature_order]])
-            
-            # Apply scaling
-            scaled_values = self.scaler.transform(values)
-            
-            # Convert back to dictionary
-            normalized = {
-                k: float(v) for k, v in 
-                zip(self.feature_order, scaled_values[0])
-            }
-            
-            return normalized
-            
-        except Exception:
-            # If scaling fails, return original features
-            return features  
-    
-    def get_feature_array(self, features: Dict[str, Any]) -> np.ndarray:
-        """
-        Convert mapped features to a numpy array for ML input.
-        
-        Args:
-            features: Mapped features dictionary
-            
-        Returns:
-            2D numpy array shaped (1, n_features) for model prediction
-        """
-        values = [features.get(k, 0.0) for k in self.feature_order]
-        return np.array([values])
+        return self.scaler.transform(features)
     
     def set_scaler(self, scaler: Any) -> None:
         """
@@ -162,6 +147,17 @@ class FeatureMapper:
         """
         self.scaler = scaler
     
+
+    def load_scaler(self, scaler_path: str) -> None:
+        """
+        Load a scaler from file.
+        
+        Args:
+            scaler_path: Path to the saved scaler file (.joblib)
+        """
+  
+        self.scaler = joblib.load(scaler_path)
+
     @property
     def features_mapped(self) -> int:
         """Get the total number of feature sets mapped."""

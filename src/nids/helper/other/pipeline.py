@@ -10,10 +10,6 @@ Detection System:
 4. Feature Mapper - Maps features to ML model input format
 5. Anomaly Detector - Classifies traffic using ML models
 
-The pipeline provides a clean separation between the Traffic Processing 
-Pipeline (components 1-4) and the detection logic (component 5), allowing 
-for flexible deployment scenarios where the anomaly detection module can 
-be updated without modifying the traffic processing pipeline.
 """
 
 import threading
@@ -42,8 +38,7 @@ class NIDSPipeline:
     Attributes:
         interface: Network interface to capture from
         model_paths: Dictionary of paths to ML models
-        output_mode: Output mode ('csv', 'url', etc.)
-        output: Output destination
+        output_path: Output path
     """
     
     def __init__(
@@ -89,17 +84,19 @@ class NIDSPipeline:
             self.anomaly_detector.load_models(
                 binary_model_path=binary_model_path,
                 multi_class_model_path=multi_class_model_path,
-                scaler_path=scaler_path
             )
         
         # Store user's detection callback
         self._user_detection_callback = detection_callback
-        
+        self._scaler = None  # Scaler is not used in current implementation
+
         # Initialize Component 4: Feature Mapper
         self.feature_mapper = FeatureMapper(
             feature_callback=self._on_features_mapped,
-            scaler=self.anomaly_detector.scaler
         )
+
+        if scaler_path:
+            self.feature_mapper.load_scaler(scaler_path=scaler_path)
         
         # Initialize Component 3: Feature Extractor
         self.feature_extractor = FeatureExtractor(
@@ -290,7 +287,7 @@ class NIDSPipeline:
         return {
             "is_running": self._is_running,
             "uptime_seconds": self.uptime,
-            "packets_captured": self.packet_capturer.packets_captured,
+            "packets_captOutput destinationured": self.packet_capturer.packets_captured,
             "packets_processed": self.packet_parser.packets_processed,
             "flows_created": self.packet_parser.flows_created,
             "flows_completed": self.packet_parser.flows_completed,

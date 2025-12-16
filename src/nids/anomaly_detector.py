@@ -25,7 +25,7 @@ import pandas as pd
 
 class AttackCategory(Enum):
     """Enumeration of attack categories that can be detected."""
-    NORMAL = auto()
+    BENIGN = auto()
     DOS = auto()
     DDOS = auto()
     PORT_SCAN = auto()
@@ -48,10 +48,10 @@ class DetectionResult:
         flow_metadata: Optional metadata about the flow
     """
     prediction: str
-    category: AttackCategory
     confidence: float
     is_attack: bool
     flow_metadata: Optional[Dict[str, Any]] = None
+    category: AttackCategory = AttackCategory.UNKNOWN
 
 
 class AnomalyDetector:
@@ -71,11 +71,22 @@ class AnomalyDetector:
         multi_class_model: Model for attack type classification
         detection_callback: Callback function for detection results
     """
-    
+
+    # Mapping for binary classification (handles both string and int)
+    BINARY_ATTACK_VALUES = {1, "1", "Attack"}
+    BINARY_BENIGN_VALUES = {0, "0", "BENIGN"}
+    MULTICLASS_LABEL_MAP = {
+        0: "DoS",
+        1: "DDoS", 
+        2: "PortScan",
+        3: "BruteForce",
+        4: "WebAttack",
+        5: "Bot",
+    }
+
     # Mapping from prediction labels to attack categories
     CATEGORY_MAP = {
-        "Normal": AttackCategory.NORMAL,
-        "Benign": AttackCategory.NORMAL,
+        "BENIGN" or 0: AttackCategory.BENIGN,
         "DoS": AttackCategory.DOS,
         "DDoS": AttackCategory.DDOS,
         "PortScan": AttackCategory.PORT_SCAN,
@@ -89,7 +100,6 @@ class AnomalyDetector:
         self,
         binary_model: Optional[Any] = None,
         multi_class_model: Optional[Any] = None,
-        scaler: Optional[Any] = None,
         detection_callback: Optional[Callable[[DetectionResult], None]] = None
     ):
         """
@@ -98,22 +108,32 @@ class AnomalyDetector:
         Args:
             binary_model: Pre-trained model for binary classification
             multi_class_model: Pre-trained model for multi-class classification
-            scaler: Feature scaler for preprocessing
             detection_callback: Function called with each detection result
         """
         self.binary_model = binary_model
         self.multi_class_model = multi_class_model
-        self.scaler = scaler
         self.detection_callback = detection_callback
         
         # Statistics
         self._flows_analyzed = 0
         self._attacks_detected = 0
         self._attack_counts: Dict[str, int] = {}
+
+    def _is_attack(self, binary_pred) -> bool:
+        """Check if binary prediction indicates an attack."""
+        return binary_pred in self.BINARY_ATTACK_VALUES
     
+    def _normalize_multiclass_prediction(self, pred) -> str:
+        """Convert numeric or string prediction to standard string label."""
+        # Handle numeric predictions
+        if isinstance(pred, (int, np.integer)):
+            return self.MULTICLASS_LABEL_MAP.get(pred, "Unknown")
+        # Handle string predictions
+        return str(pred)
+
     def detect(
         self, 
-        features: Dict[str, Any], 
+        features: np.ndarray, 
         flow_metadata: Optional[Any] = None
     ) -> DetectionResult:
         """
@@ -139,15 +159,8 @@ class AnomalyDetector:
         is_attack = False
         
         try:
-            # Prepare features for model input
-            df = pd.DataFrame([features])
-            
-            # Apply scaling if available
-            if self.scaler is not None:
-                X = self.scaler.transform(df)
-            else:
-                X = df.values
-            
+            X = features
+        
             # Stage 1: Binary classification
             if self.binary_model is not None:
                 binary_pred = self.binary_model.predict(X)[0]
@@ -157,7 +170,7 @@ class AnomalyDetector:
                     proba = self.binary_model.predict_proba(X)[0]
                     confidence = float(max(proba))
                 
-                if binary_pred == "Attack" or binary_pred == 1:
+                if self._is_attack(binary_pred):
                     is_attack = True
                     
                     # Stage 2: Multi-class classification
@@ -173,20 +186,12 @@ class AnomalyDetector:
                         prediction = "Attack"
                         category = AttackCategory.UNKNOWN
                 else:
-                    prediction = "Normal"
-                    category = AttackCategory.NORMAL
+                    prediction = "BENIGN"
+                    category = AttackCategory.BENIGN
+                    is_attack = False
             
-            elif self.multi_class_model is not None:
-                # Direct multi-class classification if no binary model
-                prediction = str(self.multi_class_model.predict(X)[0])
-                category = self.CATEGORY_MAP.get(prediction, AttackCategory.UNKNOWN)
-                is_attack = category != AttackCategory.NORMAL
-                
-                if hasattr(self.multi_class_model, 'predict_proba'):
-                    proba = self.multi_class_model.predict_proba(X)[0]
-                    confidence = float(max(proba))
-        
         except Exception as e:
+            print(f"[DEBUG] Detection error: {type(e).__name__}: {e}")  # Add this line
             prediction = "Error"
             category = AttackCategory.UNKNOWN
             confidence = 0.0
@@ -229,7 +234,7 @@ class AnomalyDetector:
             String label of the attack type
         """
         prediction = str(self.multi_class_model.predict(X)[0])
-        
+        prediction = self._normalize_multiclass_prediction(prediction)
         # Apply domain knowledge heuristics
         if flow_metadata is not None and hasattr(flow_metadata, 'dest_port'):
             dest_port = flow_metadata.dest_port
@@ -273,7 +278,6 @@ class AnomalyDetector:
         self,
         binary_model_path: Optional[str] = None,
         multi_class_model_path: Optional[str] = None,
-        scaler_path: Optional[str] = None
     ) -> None:
         """
         Load pre-trained models from file paths.
@@ -281,7 +285,6 @@ class AnomalyDetector:
         Args:
             binary_model_path: Path to binary classifier model
             multi_class_model_path: Path to multi-class classifier model
-            scaler_path: Path to feature scaler
         """
         import joblib
         
@@ -290,9 +293,6 @@ class AnomalyDetector:
         
         if multi_class_model_path:
             self.multi_class_model = joblib.load(multi_class_model_path)
-        
-        if scaler_path:
-            self.scaler = joblib.load(scaler_path)
     
     @property
     def flows_analyzed(self) -> int:
