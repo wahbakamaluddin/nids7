@@ -28,6 +28,12 @@ from collections import deque
 from nids.helper.other.pipeline import NIDSPipeline
 from nids.anomaly_detector import DetectionResult
 
+PATHS = {
+    "Binary Model": "/home/wahba/Documents/model/binary_classification/knn_binary.joblib",
+    "Multi-class Model": "/home/wahba/Documents/model/multi_class_classification/knn_multi_class.joblib",
+    "Scaler": "/home/wahba/Documents/model/binary_classification/robust_scaler.joblib",
+    "Output CSV": "/home/wahba/Documents/nids7/csv"
+}
 
 class NIDSGUI:
     """
@@ -130,7 +136,7 @@ class NIDSGUI:
         # Binary Model Path
         ttk.Label(config_frame, text="Model:").grid(row=0, column=2, sticky="w", padx=(0, 2))
         self.model_entry = ttk.Entry(config_frame, width=40)
-        self.model_entry.insert(0, "/home/wahba/Documents/nids5/test/model/binary/knn_binary.joblib")
+        self.model_entry.insert(0, PATHS["Binary Model"])
         self.model_entry.grid(row=0, column=3, sticky="we", padx=(0, 10))
         
         # Reset button
@@ -299,9 +305,9 @@ class NIDSGUI:
             self.pipeline = NIDSPipeline(
                 interface=interface,
                 binary_model_path=model_path,
-                multi_class_model_path='/Users/wahba/Documents/model/multi_class_classification/knn_multi_class.joblib',
-                scaler_path='/Users/wahba/Documents/model/binary_classification/robust_scaler.joblib',
-                output_path='/Users/wahba/Documents/github/nids7/csv',
+                multi_class_model_path=PATHS["Multi-class Model"],
+                scaler_path=PATHS["Scaler"],
+                output_path=PATHS["Output CSV"],
                 detection_callback=self._on_detection,
                 log_callback=self._update_log_widget
             )

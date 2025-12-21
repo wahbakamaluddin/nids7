@@ -16,24 +16,10 @@ classifies the network flow into one of several categories:
 The result is then used to determine if any action or alert is needed.
 """
 
-from typing import Dict, Any, Optional, Callable, List
-from enum import Enum, auto
+from typing import Dict, Any, Optional, Callable
 from dataclasses import dataclass
 import numpy as np
-import pandas as pd
-
-
-class AttackCategory(Enum):
-    """Enumeration of attack categories that can be detected."""
-    BENIGN = auto()
-    DOS = auto()
-    DDOS = auto()
-    PORT_SCAN = auto()
-    BRUTE_FORCE = auto()
-    WEB_ATTACK = auto()
-    BOT = auto()
-    UNKNOWN = auto()
-
+import joblib
 
 @dataclass
 class DetectionResult:
@@ -51,8 +37,6 @@ class DetectionResult:
     confidence: float
     is_attack: bool
     flow_metadata: Optional[Dict[str, Any]] = None
-    category: AttackCategory = AttackCategory.UNKNOWN
-
 
 class AnomalyDetector:
     """
@@ -74,26 +58,13 @@ class AnomalyDetector:
 
     # Mapping for binary classification (handles both string and int)
     BINARY_ATTACK_VALUES = {1, "1", "Attack"}
-    BINARY_BENIGN_VALUES = {0, "0", "BENIGN"}
+    BINARY_BENIGN_VALUES = {0, "0", "Benign"}
     MULTICLASS_LABEL_MAP = {
         0: "DoS",
-        1: "DDoS", 
-        2: "PortScan",
-        3: "BruteForce",
-        4: "WebAttack",
-        5: "Bot",
-    }
-
-    # Mapping from prediction labels to attack categories
-    CATEGORY_MAP = {
-        "BENIGN" or 0: AttackCategory.BENIGN,
-        "DoS": AttackCategory.DOS,
-        "DDoS": AttackCategory.DDOS,
-        "PortScan": AttackCategory.PORT_SCAN,
-        "Port Scanning": AttackCategory.PORT_SCAN,
-        "Brute Force": AttackCategory.BRUTE_FORCE,
-        "Web Attack": AttackCategory.WEB_ATTACK,
-        "Bot": AttackCategory.BOT,
+        1: "PortScan",
+        2: "BruteForce",
+        3: "WebAttack",
+        4: "Bot",
     }
     
     def __init__(
@@ -154,7 +125,6 @@ class AnomalyDetector:
         
         # Default result
         prediction = "Unknown"
-        category = AttackCategory.UNKNOWN
         confidence = 0.0
         is_attack = False
         
@@ -176,7 +146,6 @@ class AnomalyDetector:
                     # Stage 2: Multi-class classification
                     if self.multi_class_model is not None:
                         prediction = self._classify_attack_type(X, flow_metadata)
-                        category = self.CATEGORY_MAP.get(prediction, AttackCategory.UNKNOWN)
                         
                         # Get confidence from multi-class model
                         if hasattr(self.multi_class_model, 'predict_proba'):
@@ -184,16 +153,13 @@ class AnomalyDetector:
                             confidence = float(max(proba))
                     else:
                         prediction = "Attack"
-                        category = AttackCategory.UNKNOWN
                 else:
                     prediction = "Benign"
-                    category = AttackCategory.BENIGN
                     is_attack = False
             
         except Exception as e:
             print(f"[DEBUG] Detection error: {type(e).__name__}: {e}")  # Add this line
             prediction = "Error"
-            category = AttackCategory.UNKNOWN
             confidence = 0.0
         
         # Update statistics
@@ -204,7 +170,6 @@ class AnomalyDetector:
         # Create result
         result = DetectionResult(
             prediction=prediction,
-            category=category,
             confidence=confidence,
             is_attack=is_attack,
             flow_metadata=self._extract_metadata(flow_metadata)
@@ -233,7 +198,7 @@ class AnomalyDetector:
         Returns:
             String label of the attack type
         """
-        prediction = str(self.multi_class_model.predict(X)[0])
+        raw_prediction = self.multi_class_model.predict(X)[0]
         # prediction = self._normalize_multiclass_prediction(prediction)
         # # Apply domain knowledge heuristics
         # if flow_metadata is not None and hasattr(flow_metadata, 'dest_port'):
@@ -243,6 +208,8 @@ class AnomalyDetector:
         #     if prediction in ("DoS", "DDoS"):
         #         if dest_port in (21, 22):  # FTP, SSH
         #             prediction = "Brute Force"
+        
+        prediction = self._normalize_multiclass_prediction(raw_prediction)
         
         return prediction
     
@@ -286,7 +253,7 @@ class AnomalyDetector:
             binary_model_path: Path to binary classifier model
             multi_class_model_path: Path to multi-class classifier model
         """
-        import joblib
+
         
         if binary_model_path:
             self.binary_model = joblib.load(binary_model_path)

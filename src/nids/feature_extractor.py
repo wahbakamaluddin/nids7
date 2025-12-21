@@ -95,43 +95,46 @@ class FeatureExtractor:
         
         # Build complete feature dictionary
         all_features = {
-            # Backward packet length features
-            "Bwd Packet Length Std": packet_length.get_std(PacketDirection.REVERSE),
-            "Bwd Packet Length Mean": packet_length.get_mean(PacketDirection.REVERSE),
-            "Bwd Packet Length Max": packet_length.get_max(PacketDirection.REVERSE),
-            "Bwd Packet Length Min": packet_length.get_min(PacketDirection.REVERSE),
+
+            # Flow-level features (selected 6 out of 6)
+            'Flow Duration': packet_time.get_duration(),
+            'Flow Packets/s': packet_count.get_rate(),
+            'Flow Bytes/s': flow_bytes.get_rate(),
+            'Flow IAT Mean': flow_iat["mean"],
+            'Flow IAT Max': flow_iat["max"],
+            'Flow IAT Std': flow_iat["std"],
             
-            # Forward packet length features
-            "Total Length of Fwd Packets": packet_length.get_total(PacketDirection.FORWARD),
-            "Fwd Packet Length Max": packet_length.get_max(PacketDirection.FORWARD),
-            "Fwd Packet Length Mean": packet_length.get_mean(PacketDirection.FORWARD),
-            "Fwd Packet Length Std": packet_length.get_std(PacketDirection.FORWARD),
-            "Fwd Packet Length Min": packet_length.get_min(PacketDirection.FORWARD),
+            # Forward features (selected 11 out of 11)
+            'Fwd Header Length': flow_bytes.get_forward_header_bytes(),
+            'Fwd IAT Total': forward_iat["total"],
+            'Fwd IAT Mean': forward_iat["mean"],
+            'Fwd IAT Max': forward_iat["max"],
+            'Fwd IAT Std': forward_iat["std"],
+            'Fwd Packet Length Min': packet_length.get_min(PacketDirection.FORWARD),
+            'Fwd Packet Length Max': packet_length.get_max(PacketDirection.FORWARD),
+            'Fwd Packet Length Mean': packet_length.get_mean(PacketDirection.FORWARD),
+            'Fwd Packet Length Std': packet_length.get_std(PacketDirection.FORWARD),
+            'Subflow Fwd Bytes': packet_length.get_total(PacketDirection.FORWARD),  # From subflow_fwd_byts
+            'Total Fwd Packets': packet_count.get_total(PacketDirection.FORWARD),
+            'Total Length of Fwd Packets': packet_length.get_total(PacketDirection.FORWARD),
             
-            # Packet count features
-            "Total Fwd Packets": packet_count.get_total(PacketDirection.FORWARD),
-            "Total Backward Packets": packet_count.get_total(PacketDirection.REVERSE),
+            # Backward features (selected 6 out of 6)
+            'Bwd Header Length': flow_bytes.get_reverse_header_bytes(),
+            'Bwd Packet Length Min': packet_length.get_min(PacketDirection.REVERSE),
+            'Bwd Packet Length Max': packet_length.get_max(PacketDirection.REVERSE),
+            'Bwd Packet Length Std': packet_length.get_std(PacketDirection.REVERSE),
+            'Bwd Packets/s': packet_count.get_rate(PacketDirection.REVERSE),
+            'Init_Win_bytes_backward': flow.init_window_size.get(PacketDirection.REVERSE,0),
             
-            # Inter-arrival time features (converted to microseconds)
-            "Flow IAT Max": flow_iat["max"] * 1_000_000,
-            "Flow IAT Min": flow_iat["min"] * 1_000_000,
-            "Flow IAT Mean": flow_iat["mean"] * 1_000_000,
-            "Flow IAT Std": flow_iat["std"] * 1_000_000,
-            "Fwd IAT Total": forward_iat["total"] * 1_000_000,
-            "Fwd IAT Mean": forward_iat["mean"] * 1_000_000,
-            "Fwd IAT Std": forward_iat["std"] * 1_000_000,
-            "Fwd IAT Max": forward_iat["max"] * 1_000_000,
-            "Fwd IAT Min": forward_iat["min"] * 1_000_000,
-            "Bwd IAT Total": backward_iat["total"] * 1_000_000,
-            "Bwd IAT Mean": backward_iat["mean"] * 1_000_000,
-            "Bwd IAT Std": backward_iat["std"] * 1_000_000,
-            "Bwd IAT Max": backward_iat["max"] * 1_000_000,
-            "Bwd IAT Min": backward_iat["min"] * 1_000_000,
-            
-            # Flow byte rate features
-            "Flow Bytes/s": flow_bytes.get_rate(),
-            "Flow Packets/s": packet_count.get_rate(),
-            
+            # Packet-level features (selected 7 out of 7)
+            'Packet Length Mean': packet_length.get_mean(),
+            'Packet Length Std': packet_length.get_std(),
+            'Packet Length Variance': packet_length.get_var(),
+            'Average Packet Size': packet_length.get_avg(),  # From pkt_size_avg
+            'PSH Flag Count': flag_count.count("P"),
+            'Init_Win_bytes_forward': flow.init_window_size.get(PacketDirection.FORWARD,0),
+            'Max Packet Length': packet_length.get_max(),
+                    
             # Flow metadata (useful for logging/reporting)
             "Src IP": flow.src_ip,
             "Dst IP": flow.dest_ip,
