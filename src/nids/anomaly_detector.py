@@ -186,7 +186,7 @@ class AnomalyDetector:
                         prediction = "Attack"
                         category = AttackCategory.UNKNOWN
                 else:
-                    prediction = "BENIGN"
+                    prediction = "Benign"
                     category = AttackCategory.BENIGN
                     is_attack = False
             
@@ -234,15 +234,15 @@ class AnomalyDetector:
             String label of the attack type
         """
         prediction = str(self.multi_class_model.predict(X)[0])
-        prediction = self._normalize_multiclass_prediction(prediction)
-        # Apply domain knowledge heuristics
-        if flow_metadata is not None and hasattr(flow_metadata, 'dest_port'):
-            dest_port = flow_metadata.dest_port
+        # prediction = self._normalize_multiclass_prediction(prediction)
+        # # Apply domain knowledge heuristics
+        # if flow_metadata is not None and hasattr(flow_metadata, 'dest_port'):
+        #     dest_port = flow_metadata.dest_port
             
-            # SSH/FTP ports with DoS/DDoS might actually be brute force
-            if prediction in ("DoS", "DDoS"):
-                if dest_port in (21, 22):  # FTP, SSH
-                    prediction = "Brute Force"
+        #     # SSH/FTP ports with DoS/DDoS might actually be brute force
+        #     if prediction in ("DoS", "DDoS"):
+        #         if dest_port in (21, 22):  # FTP, SSH
+        #             prediction = "Brute Force"
         
         return prediction
     

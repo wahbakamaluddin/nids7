@@ -37,20 +37,59 @@ class FeatureMapper:
     
     # Default feature order matching the trained model
     REQUIRED_FEATURES = [
-        "Bwd Packet Length Std",
-        "Bwd Packet Length Mean",
-        "Bwd Packet Length Max",
-        "Total Length of Fwd Packets",
-        "Fwd Packet Length Max",
-        "Fwd Packet Length Mean",
-        "Fwd IAT Std",
-        "Total Fwd Packets",
-        "Fwd Packet Length Std",
-        "Flow IAT Max",
-        "Flow Bytes/s",
-        "Flow IAT Std",
-        "Bwd Packet Length Min",
-        "Fwd IAT Total"
+        # "Bwd Packet Length Std",
+        # "Bwd Packet Length Mean",
+        # "Bwd Packet Length Max",
+        # "Total Length of Fwd Packets",
+        # "Fwd Packet Length Max",
+        # "Fwd Packet Length Mean",
+        # "Fwd IAT Std",
+        # "Total Fwd Packets",
+        # "Fwd Packet Length Std",
+        # "Flow IAT Max",
+        # "Flow Bytes/s",
+        # "Flow IAT Std",
+        # "Bwd Packet Length Min",
+        # "Fwd IAT Total"
+        
+        # Flow-level
+        'Flow Duration',
+        'Flow Packets/s',
+        'Flow Bytes/s',
+        'Flow IAT Mean',
+        'Flow IAT Max',
+        'Flow IAT Std',
+        
+        # Forward features
+        'Fwd Header Length',
+        'Fwd IAT Total',
+        'Fwd IAT Mean',
+        'Fwd IAT Max',
+        'Fwd IAT Std',
+        'Fwd Packet Length Min',
+        'Fwd Packet Length Max',
+        'Fwd Packet Length Mean',
+        'Fwd Packet Length Std',
+        'Subflow Fwd Bytes',
+        'Total Fwd Packets',
+        'Total Length of Fwd Packets',
+        
+        # Backward features
+        'Bwd Header Length',
+        'Bwd Packet Length Min',
+        'Bwd Packet Length Max',
+        'Bwd Packet Length Std',
+        'Bwd Packets/s',
+        'Init_Win_bytes_backward',
+        
+        # Packet-level
+        'Packet Length Mean',
+        'Packet Length Std',
+        'Packet Length Variance',
+        'Average Packet Size',
+        'PSH Flag Count',
+        'Init_Win_bytes_forward',
+        'Max Packet Length',
     ]
     
     def __init__(

@@ -299,9 +299,9 @@ class NIDSGUI:
             self.pipeline = NIDSPipeline(
                 interface=interface,
                 binary_model_path=model_path,
-                multi_class_model_path='/home/wahba/Documents/nids5/test/model/multi_class/knn_multi_class.joblib',
-                scaler_path='/home/wahba/Documents/nids5/test/model/binary/robust_scaler.joblib',
-                output_path='/home/wahba/Documents/nids7/csv',
+                multi_class_model_path='/Users/wahba/Documents/model/multi_class_classification/knn_multi_class.joblib',
+                scaler_path='/Users/wahba/Documents/model/binary_classification/robust_scaler.joblib',
+                output_path='/Users/wahba/Documents/github/nids7/csv',
                 detection_callback=self._on_detection,
                 log_callback=self._update_log_widget
             )
