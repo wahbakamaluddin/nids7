@@ -26,17 +26,17 @@ import psutil
 from collections import deque
 from pathlib import Path
 import os
-import helper.other.constants as constants
 
 from nids.helper.other.pipeline import NIDSPipeline
+from nids.helper.other.constants import ROOT_DIR
 from nids.anomaly_detector import DetectionResult
 
 
 PATHS = {
-    "Binary Model": os.path.join(constants.ROOT_DIR, 'model/binary_classification/knn_binary.joblib'),
-    "Multi-class Model": os.path.join(constants.ROOT_DIR, "model/multi_class_classification/knn_multi_class.joblib"),
-    "Scaler": os.path.join(constants.ROOT_DIR, "model/binary_classification/robust_scaler.joblib"),
-    "Output CSV": os.path.join(constants.ROOT_DIR, "csv")
+    "Binary Model": os.path.join(ROOT_DIR, 'model/binary_classification/knn_binary.joblib'),
+    "Multi-class Model": os.path.join(ROOT_DIR, "model/multi_class_classification/knn_multi_class.joblib"),
+    "Scaler": os.path.join(ROOT_DIR, "model/binary_classification/robust_scaler.joblib"),
+    "Output CSV": os.path.join(ROOT_DIR, "csv")
 }
 
 class NIDSGUI:
