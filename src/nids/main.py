@@ -24,15 +24,19 @@ import threading
 import time
 import psutil
 from collections import deque
+from pathlib import Path
+import os
+import helper.other.constants as constants
 
 from nids.helper.other.pipeline import NIDSPipeline
 from nids.anomaly_detector import DetectionResult
 
+
 PATHS = {
-    "Binary Model": "/home/wahba/Documents/model/binary_classification/knn_binary.joblib",
-    "Multi-class Model": "/home/wahba/Documents/model/multi_class_classification/knn_multi_class.joblib",
-    "Scaler": "/home/wahba/Documents/model/binary_classification/robust_scaler.joblib",
-    "Output CSV": "/home/wahba/Documents/nids7/csv"
+    "Binary Model": os.path.join(constants.ROOT_DIR, 'model/binary_classification/knn_binary.joblib'),
+    "Multi-class Model": os.path.join(constants.ROOT_DIR, "model/multi_class_classification/knn_multi_class.joblib"),
+    "Scaler": os.path.join(constants.ROOT_DIR, "model/binary_classification/robust_scaler.joblib"),
+    "Output CSV": os.path.join(constants.ROOT_DIR, "csv")
 }
 
 class NIDSGUI:
@@ -233,7 +237,7 @@ class NIDSGUI:
         self.interface_entry.delete(0, tk.END)
         self.interface_entry.insert(0, "wlp0s20f3")
         self.model_entry.delete(0, tk.END)
-        self.model_entry.insert(0, "/home/wahba/Documents/nids5/test/model/binary/knn_binary.joblib")
+        self.model_entry.insert(0, PATHS["Binary Model"])
         self._update_log_widget("[*] Parameters reset to defaults\n")
 
     def copy_log(self):
